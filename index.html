@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>FusionRL — Working Demo</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid #1e293b;
+}
+
+nav button {
+  background: #020617;
+  color: #e5e7eb;
+  border: 1px solid #1e293b;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+nav button.active {
+  background: #1e293b;
+}
+
+section {
+  display: none;
+  padding: 16px;
+}
+
+section.active {
+  display: block;
+}
+
+canvas {
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  background: #020617;
+}
+
+.card {
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+input[type=range] {
+  width: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <button class="active" onclick="openTab(0)">Simulation</button>
+  <button onclick="openTab(1)">Algorithms</button>
+  <button onclick="openTab(2)">Explain</button>
+</nav>
+
+<section class="active">
+  <h2>Simulation</h2>
+  <canvas id="cv" width="400" height="400"></canvas>
+
+  <div class="card">
+    B (magnetic field)
+    <input type="range" id="B" min="0.5" max="2" step="0.01" value="1">
+    P (pressure)
+    <input type="range" id="P" min="0.5" max="2" step="0.01" value="1">
+  </div>
+</section>
+
+<section>
+  <h2>Algorithms</h2>
+  <div class="card">
+    <button onclick="alg='PID'">PID</button>
+    <button onclick="alg='RL'">RL</button>
+    <p>Current algorithm: <b id="algLabel">PID</b></p>
+  </div>
+</section>
+
+<section>
+  <h2>Explainable AI</h2>
+  <div class="card">
+    <p>β = <b id="beta">0</b></p>
+    <p>Instability = <b id="instability">0</b></p>
+  </div>
+</section>
+
+<script>
+/* ---------- Tabs ---------- */
+function openTab(i) {
+  const sections = document.querySelectorAll("section");
+  const buttons = document.querySelectorAll("nav button");
+
+  sections.forEach(s => s.classList.remove("active"));
+  buttons.forEach(b => b.classList.remove("active"));
+
+  sections[i].classList.add("active");
+  buttons[i].classList.add("active");
+}
+
+/* ---------- State ---------- */
+let alg = "PID";
+
+const canvas = document.getElementById("cv");
+const ctx = canvas.getContext("2d");
+
+const Bslider = document.getElementById("B");
+const Pslider = document.getElementById("P");
+
+let phase = 0;
+
+/* ---------- Loop ---------- */
+function loop() {
+  const B = parseFloat(Bslider.value);
+  const P = parseFloat(Pslider.value);
+
+  const beta = P / B;
+  const instability = Math.max(0, beta - 1);
+
+  document.getElementById("beta").textContent = beta.toFixed(2);
+  document.getElementById("instability").textContent = instability.toFixed(2);
+  document.getElementById("algLabel").textContent = alg;
+
+  ctx.clearRect(0, 0, 400, 400);
+
+  // Tokamak
+  ctx.strokeStyle = "#64748b";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(200, 200, 150, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Plasma
+  phase += 0.05 * (alg === "RL" ? 1.5 : 1);
+  const r = 80 + instability * 40;
+
+  ctx.strokeStyle = alg === "RL" ? "#22c55e" : "#6366f1";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+    const noise = Math.sin(a * 6 + phase) * instability * 20;
+    const x = 200 + Math.cos(a) * (r + noise);
+    const y = 200 + Math.sin(a) * (r + noise);
+    if (a === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
